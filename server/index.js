@@ -1,4 +1,10 @@
-require("dotenv").config({ path: require("path").resolve(__dirname, ".env") });
+try {
+  require("dotenv").config({
+    path: require("path").resolve(__dirname, ".env"),
+  });
+} catch (e) {
+  console.log("Dotenv config ignored in prod");
+}
 const express = require("express");
 const cors = require("cors");
 const app = express();
@@ -749,6 +755,12 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.get("/", (req, res) => {
   res.json({ message: "Library Management System API is running..." });
+});
+
+// Global Error Handler for Vercel 500 Debugging
+app.use((err, req, res, next) => {
+  console.error("Global Express Error:", err);
+  res.status(500).json({ error: err.message, stack: err.stack });
 });
 
 // Sync Database and Start Server
