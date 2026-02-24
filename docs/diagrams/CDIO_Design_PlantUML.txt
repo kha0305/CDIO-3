@@ -1,0 +1,1058 @@
+========================================================================
+1. HEADER: CẤU HÌNH GIAO DIỆN CHUNG
+========================================================================
+@startuml
+skinparam monochrome false
+skinparam shadowing true
+skinparam packageStyle rectangle
+skinparam backgroundColor #F9F9F9
+skinparam ArrowColor #2C3E50
+skinparam ActivityBorderColor #2C3E50
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityDiamondBackgroundColor #FFFFFF
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassBorderColor #2C3E50
+@enduml
+
+========================================================================
+2. SƠ ĐỒ KHỐI HỆ THỐNG (System Block Diagram)
+========================================================================
+@startuml
+title Sơ đồ Khối Hệ thống Quản lý Thư viện
+
+package "Lớp Giao diện (Frontend)" {
+  [Trình duyệt Web] as Client
+  [Chat Bot Interface] as ChatBot
+  note right of Client
+    - ReactJS / HTML5 / CSS3
+    - Giao diện người dùng
+    - Xử lý sự kiện & kiểm tra form
+    - Chat Bot tích hợp
+  end note
+}
+
+package "Lớp Máy chủ (Backend)" {
+  [Web Server (Express.js)] as Server
+  component "Bộ điều khiển (Controllers)" as Controllers
+  component "Mô hình dữ liệu (Models)" as Models
+  component "AI Agent (Dialogflow/OpenAI)" as AIAgent
+  component "Admin Agent Service" as AdminAgent
+  
+  Server --> Controllers
+  Controllers --> Models
+  Controllers --> AIAgent
+  Controllers --> AdminAgent
+  
+  note right of Server
+    - RESTful API
+    - Xử lý nghiệp vụ (Business Logic)
+    - Xác thực (Authentication)
+    - Chat Bot API
+    - Admin Agent API
+  end note
+  
+  note right of AIAgent
+    - Xử lý ngôn ngữ tự nhiên (NLP)
+    - Trả lời câu hỏi
+    - Tra cứu sách
+  end note
+  
+  note right of AdminAgent
+    - Tự động nhắc nhở
+    - Tự động phạt quá hạn
+    - Thống kê định kỳ
+  end note
+}
+
+package "Lớp Dữ liệu (Database)" {
+  database "Cơ sở dữ liệu MySQL" as DB
+}
+
+Client <--> Server : Yêu cầu HTTP / JSON
+ChatBot <--> Server : WebSocket / REST API
+Models <--> DB : Truy vấn SQL (Sequelize ORM)
+
+@enduml
+
+========================================================================
+3. SƠ ĐỒ LUỒNG DỮ LIỆU (Data Flow Diagram - DFD)
+========================================================================
+@startuml
+title DFD Mức 0 (Sơ đồ ngữ cảnh)
+actor "Thủ thư (Librarian)" as Admin
+actor "Độc giả (Reader)" as Reader
+actor "Chat Bot" as Bot
+actor "Admin Agent" as Agent
+
+rectangle "Hệ thống Quản lý Thư viện" as System
+
+Admin --> System : Đăng nhập, Quản lý Sách, Độc giả
+Admin --> System : Thực hiện Mượn/Trả, Thống kê
+Admin --> System : Quản lý Nhập sách, Danh mục
+Reader --> System : Tra cứu sách, Chat Bot
+Bot --> System : Xử lý câu hỏi, Tra cứu
+Agent --> System : Tự động hóa, Thông báo
+System --> Admin : Báo cáo, Thông báo lỗi/Thành công
+System --> Reader : Thông tin sách, Trạng thái mượn
+System --> Bot : Câu trả lời AI
+System --> Agent : Trigger tự động
+@enduml
+
+@startuml
+title DFD Mức 1 (Phân rã chức năng)
+top to bottom direction
+
+actor "Thủ thư" as Admin
+actor "Chat Bot" as Bot
+actor "Admin Agent" as Agent
+
+rectangle "1. Xử lý Đăng nhập" as P1
+rectangle "2. Quản lý Sách" as P2
+rectangle "3. Quản lý Độc giả" as P3
+rectangle "4. Quản lý Mượn/Trả" as P4
+rectangle "5. Thống kê & Báo cáo" as P5
+rectangle "6. Quản lý Nhập sách" as P6
+rectangle "7. Quản lý Danh mục/Thể loại" as P7
+rectangle "8. Chat Bot AI" as P8
+rectangle "9. Admin Agent Service" as P9
+rectangle "10. Hệ thống Thông báo" as P10
+
+database "DL Người dùng" as D1
+database "DL Sách" as D2
+database "DL Độc giả" as D3
+database "DL Giao dịch" as D4
+database "DL Danh mục" as D5
+database "DL Phiếu nhập" as D6
+database "DL Thông báo" as D7
+database "DL Chat" as D8
+
+Admin --> P1 : Tên đăng nhập/Mật khẩu
+P1 <--> D1 : Xác thực
+P1 --> Admin : Token/Phiên làm việc
+
+Admin --> P2 : Thêm/Sửa/Xóa Sách
+P2 <--> D2 : Cập nhật thông tin Sách
+
+Admin --> P3 : Thêm/Sửa/Xóa Độc giả
+P3 <--> D3 : Cập nhật hồ sơ Độc giả
+
+Admin --> P4 : Yêu cầu Mượn/Trả
+P4 <--> D2 : Kiểm tra kho / Cập nhật SL
+P4 <--> D3 : Kiểm tra thẻ / Lịch sử
+P4 <--> D4 : Ghi nhận Giao dịch
+
+Admin --> P5 : Yêu cầu báo cáo
+P5 <--> D2
+P5 <--> D3
+P5 <--> D4
+P5 --> Admin : Hiển thị biểu đồ
+
+Admin --> P6 : Tạo phiếu nhập sách
+P6 <--> D6 : Lưu phiếu nhập
+P6 <--> D2 : Cập nhật số lượng sách
+
+Admin --> P7 : Thêm/Sửa/Xóa Danh mục
+P7 <--> D5 : Cập nhật danh mục
+
+Bot --> P8 : Câu hỏi người dùng
+P8 <--> D2 : Tra cứu sách
+P8 <--> D8 : Lưu lịch sử chat
+P8 --> Bot : Câu trả lời
+
+Agent --> P9 : Trigger định kỳ
+P9 <--> D4 : Kiểm tra quá hạn
+P9 <--> D3 : Lấy thông tin độc giả
+P9 --> P10 : Gửi thông báo
+
+P10 <--> D7 : Lưu thông báo
+P10 --> Admin : Hiển thị thông báo
+@enduml
+
+========================================================================
+4. SƠ ĐỒ LỚP UML (Class Diagram)
+========================================================================
+@startuml
+title Sơ đồ Lớp - Mô hình Dữ liệu (Database Models)
+
+class User (Người dùng hệ thống) {
+  +int id
+  +string username
+  +string passwordHash
+  +string fullName
+  +string role (vai trò)
+  +date createdAt
+}
+
+class Book (Sách) {
+  +int id
+  +string title (tên sách)
+  +string author (tác giả)
+  +int categoryId (mã thể loại)
+  +string isbn
+  +int quantity (tổng sl)
+  +int borrowedQty (sl đã mượn)
+  +string image
+  +string publisher (nhà xuất bản)
+  +int publishYear (năm xuất bản)
+  --
+  +isAvailable()
+  +getAvailableQty()
+}
+
+class Category (Danh mục/Thể loại) {
+  +int id
+  +string name (tên danh mục)
+  +string description (mô tả)
+  +string code (mã danh mục)
+  +int parentId (danh mục cha)
+  +date createdAt
+  --
+  +getBookCount()
+}
+
+class Reader (Độc giả) {
+  +int id
+  +string cardId (mã thẻ)
+  +string name
+  +string email
+  +string phone
+  +date expiryDate (hạn thẻ)
+  +string status (trạng thái)
+  --
+  +isValid()
+  +getActiveLoans()
+}
+
+class Transaction (Giao dịch Mượn) {
+  +int id
+  +date borrowDate (ngày mượn)
+  +date dueDate (hạn trả)
+  +date returnDate (ngày trả)
+  +string status (trạng thái)
+  +int extensionCount (số lần gia hạn)
+  +string notes (ghi chú)
+  --
+  +calculateFine()
+  +isOverdue()
+}
+
+class ReturnSlip (Phiếu trả sách) {
+  +int id
+  +int transactionId
+  +date returnDate (ngày trả)
+  +string condition (tình trạng sách)
+  +string notes (ghi chú)
+  +int receivedBy (người nhận)
+  --
+  +calculateLateFee()
+}
+
+class BookImport (Phiếu nhập sách) {
+  +int id
+  +string importCode (mã phiếu nhập)
+  +date importDate (ngày nhập)
+  +string supplier (nhà cung cấp)
+  +float totalAmount (tổng tiền)
+  +string notes (ghi chú)
+  +int createdBy (người tạo)
+  --
+  +getTotalBooks()
+}
+
+class BookImportDetail (Chi tiết phiếu nhập) {
+  +int id
+  +int importId
+  +int bookId
+  +int quantity (số lượng)
+  +float unitPrice (đơn giá)
+  --
+  +getSubtotal()
+}
+
+class Fine (Phiếu phạt) {
+  +int id
+  +float amount (số tiền)
+  +string reason (lý do)
+  +boolean paid (đã thanh toán?)
+  +date paidAt
+}
+
+class Notification (Thông báo) {
+  +int id
+  +string title
+  +string message
+  +string type
+  +boolean isRead
+  +date createdAt
+}
+
+class Reservation (Đặt trước) {
+  +int id
+  +date expiresAt
+  +string status
+}
+
+class ChatMessage (Tin nhắn Chat) {
+  +int id
+  +int readerId (độc giả)
+  +string message (tin nhắn)
+  +string response (câu trả lời)
+  +string intent (ý định)
+  +date createdAt
+}
+
+class AdminAgentLog (Log tác nhân Admin) {
+  +int id
+  +string action (hành động)
+  +string description (mô tả)
+  +string result (kết quả)
+  +date executedAt
+}
+
+' Quan hệ
+Transaction "0..*" -- "1" Book : liên quan >
+Transaction "0..*" -- "1" Reader : được mượn bởi >
+Fine "0..*" -- "1" Transaction : gắn với >
+
+Reservation "0..*" -- "1" Book : đặt trước >
+Reservation "0..*" -- "1" Reader : được đặt bởi >
+
+Notification "0..*" -- "1" Reader : thông báo cho >
+
+Book "0..*" -- "1" Category : thuộc về >
+
+ReturnSlip "1" -- "1" Transaction : gắn với >
+ReturnSlip "0..*" -- "1" User : người nhận >
+
+BookImport "0..*" -- "1" User : tạo bởi >
+BookImportDetail "0..*" -- "1" BookImport : thuộc về >
+BookImportDetail "0..*" -- "1" Book : cho sách >
+
+ChatMessage "0..*" -- "0..1" Reader : của độc giả >
+
+@enduml
+
+========================================================================
+5. SƠ ĐỒ USE CASE (Use Case Diagram)
+========================================================================
+@startuml
+title He thong Quan ly Thu vien
+skinparam backgroundColor white
+
+actor "Ban doc" as Reader
+actor "Thu thu" as Librarian
+actor "Admin" as Admin
+
+rectangle "He thong QL Thu vien" {
+  (Gia han muon) as UC1
+  (Thanh toan phat) as UC2
+  (Danh gia/Feedback) as UC3
+  (Dang ky) as UC4
+  (Tim kiem sach) as UC5
+  (Xem chi tiet sach) as UC6
+  (Dat truoc sach) as UC7
+  (Chat Bot) as UC8
+  (Dang xuat) as UC9
+  
+  (Lap phieu muon) as UC10
+  (Lap phieu tra) as UC11
+  (Thong ke/Bao cao) as UC12
+  (Quan ly sach) as UC13
+  (Quan ly ban doc) as UC14
+  (Nhap sach) as UC15
+  (Xem lich su) as UC16
+  
+  (QL Danh muc) as UC17
+  (Cau hinh Agent) as UC18
+  (QL Nguoi dung) as UC19
+  
+  (Dang nhap) as UC_Login
+}
+
+Reader --> UC1
+Reader --> UC2
+Reader --> UC3
+Reader --> UC4
+Reader --> UC5
+Reader --> UC6
+Reader --> UC7
+Reader --> UC8
+Reader --> UC9
+
+Librarian --> UC10
+Librarian --> UC11
+Librarian --> UC12
+Librarian --> UC13
+Librarian --> UC14
+Librarian --> UC15
+Librarian --> UC16
+
+UC1 ..> UC_Login : <<include>>
+UC2 ..> UC_Login : <<include>>
+UC3 ..> UC_Login : <<include>>
+UC4 ..> UC_Login : <<include>>
+UC7 ..> UC_Login : <<include>>
+UC9 ..> UC_Login : <<include>>
+UC10 ..> UC_Login : <<include>>
+UC11 ..> UC_Login : <<include>>
+UC12 ..> UC_Login : <<include>>
+UC13 ..> UC_Login : <<include>>
+UC14 ..> UC_Login : <<include>>
+
+UC_Login <-- Admin
+UC17 <-- Admin
+UC18 <-- Admin
+UC19 <-- Admin
+UC13 <-- Admin
+UC14 <-- Admin
+@enduml
+
+
+========================================================================
+6. SƠ ĐỒ TUẦN TỰ (Sequence Diagram)
+========================================================================
+@startuml
+title Sơ đồ Tuần tự: Quy trình Mượn Sách
+
+actor "Thủ thư" as Admin
+boundary "Giao diện Mượn" as UI
+control "Transaction Controller" as Ctrl
+entity "Reader Model" as Reader
+entity "Book Model" as Book
+entity "Transaction Model" as Trans
+entity "Hệ thống Thông báo" as Notif
+
+Admin -> UI : Nhập ID Độc giả & ID Sách
+UI -> Ctrl : Gửi yêu cầu POST /api/borrow
+activate Ctrl
+
+Ctrl -> Book : Tìm sách theo ID (findByPk)
+activate Book
+Book --> Ctrl : Dữ liệu Sách
+deactivate Book
+
+alt Không tìm thấy Sách
+  Ctrl --> UI : Lỗi: Không tìm thấy sách
+else Tìm thấy Sách
+  Ctrl -> Ctrl : Kiểm tra khả dụng (Tổng - Đã mượn > 0)
+  
+  alt Hết sách
+    Ctrl --> UI : Lỗi: Sách không còn sẵn
+  else Còn sách
+    Ctrl -> Reader : Tìm độc giả (findByPk)
+    activate Reader
+    Reader --> Ctrl : Dữ liệu Độc giả
+    deactivate Reader
+    
+    Ctrl -> Ctrl : Kiểm tra Trạng thái thẻ (Active?)
+    Ctrl -> Ctrl : Kiểm tra Sách quá hạn
+    Ctrl -> Ctrl : Kiểm tra Giới hạn (Max 5)
+    
+    alt Vi phạm quy tắc
+       Ctrl --> UI : Lỗi: Thông báo vi phạm (thẻ khóa/quá hạn...)
+    else Hợp lệ
+       Ctrl -> Trans : Tạo giao dịch ({status: 'BORROWED'...})
+       activate Trans
+       Trans --> Ctrl : Giao dịch mới
+       deactivate Trans
+       
+       Ctrl -> Book : Tăng số lượng đã mượn (increment)
+       activate Book
+       Book --> Ctrl : ok
+       deactivate Book
+       
+       Ctrl -> Notif : Tạo thông báo (createNotification)
+       activate Notif
+       Notif --> Ctrl : ok
+       deactivate Notif
+       
+       Ctrl --> UI : Thành công (Chi tiết giao dịch)
+    end
+  end
+end
+
+deactivate Ctrl
+UI --> Admin : Hiển thị thông báo thành công
+@enduml
+
+@startuml
+title Sơ đồ Tuần tự: Quy trình Nhập Sách
+
+actor "Thủ thư" as Admin
+boundary "Giao diện Nhập sách" as UI
+control "BookImport Controller" as Ctrl
+entity "BookImport Model" as Import
+entity "BookImportDetail Model" as Detail
+entity "Book Model" as Book
+
+Admin -> UI : Nhập thông tin phiếu nhập
+Admin -> UI : Thêm danh sách sách cần nhập
+UI -> Ctrl : POST /api/book-imports
+activate Ctrl
+
+Ctrl -> Import : Tạo phiếu nhập mới
+activate Import
+Import --> Ctrl : Phiếu nhập mới (importId)
+deactivate Import
+
+loop Với mỗi sách trong danh sách
+  Ctrl -> Book : Tìm sách theo ID
+  activate Book
+  Book --> Ctrl : Thông tin sách
+  deactivate Book
+  
+  alt Sách đã tồn tại
+    Ctrl -> Book : Cập nhật số lượng (+quantity)
+    activate Book
+    Book --> Ctrl : ok
+    deactivate Book
+  else Sách mới
+    Ctrl -> Book : Tạo sách mới
+    activate Book
+    Book --> Ctrl : Sách mới (bookId)
+    deactivate Book
+  end
+  
+  Ctrl -> Detail : Tạo chi tiết phiếu nhập
+  activate Detail
+  Detail --> Ctrl : ok
+  deactivate Detail
+end
+
+Ctrl --> UI : Thành công (Chi tiết phiếu nhập)
+deactivate Ctrl
+UI --> Admin : Hiển thị phiếu nhập thành công
+@enduml
+
+@startuml
+title Sơ đồ Tuần tự: Quy trình Chat Bot
+
+actor "Độc giả" as Reader
+boundary "Chat Interface" as UI
+control "ChatBot Controller" as Ctrl
+entity "AI Service (NLP)" as AI
+entity "Book Model" as Book
+entity "ChatMessage Model" as Chat
+
+Reader -> UI : Gửi câu hỏi
+UI -> Ctrl : POST /api/chatbot/message
+activate Ctrl
+
+Ctrl -> AI : Phân tích ý định (intent)
+activate AI
+AI --> Ctrl : Intent + Entities
+deactivate AI
+
+alt Intent = "search_book"
+  Ctrl -> Book : Tìm sách theo từ khóa
+  activate Book
+  Book --> Ctrl : Danh sách sách
+  deactivate Book
+  Ctrl -> AI : Tạo câu trả lời từ kết quả
+  activate AI
+  AI --> Ctrl : Câu trả lời tự nhiên
+  deactivate AI
+else Intent = "library_info"
+  Ctrl -> AI : Lấy thông tin thư viện
+  activate AI
+  AI --> Ctrl : Thông tin chuẩn
+  deactivate AI
+else Intent = "borrow_guide"
+  Ctrl -> AI : Hướng dẫn mượn sách
+  activate AI
+  AI --> Ctrl : Hướng dẫn chi tiết
+  deactivate AI
+else Intent không xác định
+  Ctrl -> AI : Tạo câu trả lời mặc định
+  activate AI
+  AI --> Ctrl : "Xin lỗi, tôi chưa hiểu..."
+  deactivate AI
+end
+
+Ctrl -> Chat : Lưu lịch sử chat
+activate Chat
+Chat --> Ctrl : ok
+deactivate Chat
+
+Ctrl --> UI : Câu trả lời
+deactivate Ctrl
+UI --> Reader : Hiển thị câu trả lời
+@enduml
+
+@startuml
+title Sơ đồ Tuần tự: Admin Agent - Tự động nhắc nhở
+
+actor "Scheduler (Cron)" as Cron
+control "Admin Agent Service" as Agent
+entity "Transaction Model" as Trans
+entity "Reader Model" as Reader
+entity "Notification Model" as Notif
+entity "Email Service" as Email
+entity "AdminAgentLog Model" as Log
+
+Cron -> Agent : Trigger (mỗi ngày 8h sáng)
+activate Agent
+
+Agent -> Trans : Lấy danh sách sách sắp đến hạn (3 ngày)
+activate Trans
+Trans --> Agent : Danh sách giao dịch
+deactivate Trans
+
+loop Với mỗi giao dịch sắp đến hạn
+  Agent -> Reader : Lấy thông tin độc giả
+  activate Reader
+  Reader --> Agent : Email, SĐT độc giả
+  deactivate Reader
+  
+  Agent -> Notif : Tạo thông báo nhắc nhở
+  activate Notif
+  Notif --> Agent : ok
+  deactivate Notif
+  
+  Agent -> Email : Gửi email nhắc nhở
+  activate Email
+  Email --> Agent : Gửi thành công
+  deactivate Email
+end
+
+Agent -> Trans : Lấy danh sách sách quá hạn
+activate Trans
+Trans --> Agent : Danh sách quá hạn
+deactivate Trans
+
+loop Với mỗi sách quá hạn
+  Agent -> Agent : Tính tiền phạt (5.000đ/ngày)
+  Agent -> Notif : Tạo thông báo phạt
+  activate Notif
+  Notif --> Agent : ok
+  deactivate Notif
+end
+
+Agent -> Log : Ghi log hoạt động
+activate Log
+Log --> Agent : ok
+deactivate Log
+
+deactivate Agent
+@enduml
+
+========================================================================
+7. SƠ ĐỒ HOẠT ĐỘNG (Activity Diagram)
+========================================================================
+@startuml
+title Sơ đồ Hoạt động: Quy trình Mượn Sách
+
+start
+:Truy cập trang Mượn sách;
+:Nhập Mã Độc giả & Mã Sách;
+
+if (Thông tin hợp lệ?) then (Không)
+  #Pink:Báo lỗi (Không tìm thấy dữ liệu);
+  stop
+else (Có)
+  if (Thẻ Độc giả Hoạt động?) then (Không)
+    #Pink:Báo lỗi: Thẻ bị Khóa/Hết hạn;
+    stop
+  else (Hoạt động)
+    if (Có sách quá hạn chưa trả?) then (Có)
+      #Pink:Yêu cầu trả sách quá hạn trước;
+      stop
+    else (Không)
+      if (Đang mượn >= 5 cuốn?) then (Có)
+        #Pink:Đạt giới hạn mượn (Max 5);
+        stop
+      else (Chưa đạt)
+        if (Sách còn trong kho?) then (Không)
+           #Pink:Hết sách nảy;
+           stop
+        else (Có)
+           :Tạo phiếu mượn (Transaction);
+           :Cập nhật kho (Số lượng - 1);
+           :Tạo thông báo hệ thống;
+           #LightGreen:Hiển thị Thành công;
+        endif
+      endif
+    endif
+  endif
+endif
+stop
+@enduml
+
+@startuml
+title Sơ đồ Hoạt động: Quy trình Trả Sách & Lập phiếu trả
+
+start
+:Quét mã phiếu / Tìm độc giả;
+:Chọn sách cần trả;
+
+if (Ngày trả > Hạn trả?) then (Đúng - Quá hạn)
+  :Tính số ngày trễ;
+  :Tính tiền phạt (5.000đ/ngày);
+  :Tạo Phiếu Phạt (Fine);
+  #Orange:Thông báo: Có phí phạt;
+else (Đúng hạn)
+  #LightGreen:Trả đúng hạn;
+endif
+
+:Kiểm tra tình trạng sách;
+
+if (Sách bị hư hỏng?) then (Có)
+  :Ghi nhận tình trạng;
+  :Tính phí bồi thường;
+  #Orange:Thêm vào phiếu phạt;
+else (Không)
+  :Tình trạng: Tốt;
+endif
+
+:Lập Phiếu trả sách (ReturnSlip);
+:Cập nhật trạng thái: ĐÃ TRẢ (RETURNED);
+:Cập nhật kho (Số lượng + 1);
+:Gửi thông báo trả sách;
+
+stop
+@enduml
+
+@startuml
+title Sơ đồ Hoạt động: Quy trình Nhập Sách
+
+start
+:Truy cập trang Nhập sách;
+:Nhập thông tin phiếu nhập;
+note right: Nhà cung cấp, Ngày nhập, Ghi chú
+
+:Thêm sách vào phiếu;
+
+repeat
+  :Chọn sách hoặc thêm sách mới;
+  
+  if (Sách đã tồn tại?) then (Có)
+    :Nhập số lượng bổ sung;
+    :Nhập đơn giá;
+  else (Không)
+    :Nhập thông tin sách mới;
+    note right: Tên, Tác giả, ISBN, Thể loại...
+    :Nhập số lượng & đơn giá;
+  endif
+  
+  :Thêm vào danh sách;
+  
+repeat while (Còn sách cần nhập?) is (Có)
+-> Không;
+
+:Xem lại phiếu nhập;
+:Tính tổng tiền tự động;
+
+if (Xác nhận phiếu nhập?) then (Có)
+  :Lưu phiếu nhập;
+  :Cập nhật số lượng tồn kho;
+  #LightGreen:Hiển thị thành công;
+else (Hủy)
+  #Pink:Hủy phiếu nhập;
+endif
+
+stop
+@enduml
+
+@startuml
+title Sơ đồ Hoạt động: Quy trình Chat Bot
+
+start
+:Độc giả mở Chat Bot;
+:Nhập câu hỏi;
+
+:AI phân tích ý định (Intent);
+
+switch (Intent?)
+case (Tra cứu sách)
+  :Trích xuất từ khóa;
+  :Tìm kiếm trong CSDL;
+  
+  if (Có kết quả?) then (Có)
+    :Hiển thị danh sách sách;
+    :Cho phép xem chi tiết;
+  else (Không)
+    :Thông báo không tìm thấy;
+    :Đề xuất từ khóa khác;
+  endif
+  
+case (Hướng dẫn mượn sách)
+  :Hiển thị các bước mượn sách;
+  :Hiển thị quy định thư viện;
+  
+case (Thông tin thư viện)
+  :Hiển thị giờ mở cửa;
+  :Hiển thị địa chỉ, liên hệ;
+  
+case (Khác)
+  :Thông báo không hiểu;
+  :Đề xuất các câu hỏi mẫu;
+  
+endswitch
+
+:Lưu lịch sử chat;
+:Hiển thị câu trả lời;
+
+if (Người dùng có câu hỏi tiếp?) then (Có)
+  :Nhập câu hỏi tiếp;
+  -> :AI phân tích ý định (Intent);
+else (Không)
+  :Kết thúc phiên chat;
+endif
+
+stop
+@enduml
+
+@startuml
+title Sơ đồ Hoạt động: Admin Agent - Tự động hóa
+
+|Scheduler|
+start
+:Trigger theo lịch (8h sáng);
+
+|Admin Agent|
+:Khởi động Agent;
+
+fork
+  :Kiểm tra sách sắp đến hạn;
+  
+  if (Có sách sắp đến hạn?) then (Có)
+    :Lấy danh sách độc giả;
+    :Tạo thông báo nhắc nhở;
+    :Gửi email/SMS thông báo;
+  else (Không)
+    :Bỏ qua;
+  endif
+  
+fork again
+  :Kiểm tra sách quá hạn;
+  
+  if (Có sách quá hạn?) then (Có)
+    :Tính tiền phạt tự động;
+    :Cập nhật trạng thái phạt;
+    :Thông báo cho thủ thư;
+  else (Không)
+    :Bỏ qua;
+  endif
+  
+fork again
+  :Tạo báo cáo hàng ngày;
+  :Thống kê mượn/trả trong ngày;
+  :Lưu báo cáo;
+  
+end fork
+
+:Ghi log hoạt động;
+#LightGreen:Agent hoàn thành;
+
+|Scheduler|
+:Đợi trigger tiếp theo;
+
+stop
+@enduml
+
+========================================================================
+8. SƠ ĐỒ QUAN HỆ THỰC THỂ (ERD - Entity Relationship Diagram)
+========================================================================
+@startuml
+title Sơ đồ Quan hệ Thực thể (ERD)
+
+entity "users" as User {
+  * id : int <<PK>>
+  --
+  username : varchar(50)
+  password_hash : varchar(255)
+  full_name : varchar(100)
+  role : enum('admin','librarian')
+  created_at : datetime
+}
+
+entity "categories" as Category {
+  * id : int <<PK>>
+  --
+  name : varchar(100)
+  description : text
+  code : varchar(20)
+  parent_id : int <<FK>>
+  created_at : datetime
+}
+
+entity "books" as Book {
+  * id : int <<PK>>
+  --
+  title : varchar(200)
+  author : varchar(100)
+  category_id : int <<FK>>
+  isbn : varchar(20)
+  quantity : int
+  borrowed_qty : int
+  image : varchar(255)
+  publisher : varchar(100)
+  publish_year : int
+  created_at : datetime
+}
+
+entity "readers" as Reader {
+  * id : int <<PK>>
+  --
+  card_id : varchar(20)
+  name : varchar(100)
+  email : varchar(100)
+  phone : varchar(15)
+  expiry_date : date
+  status : enum('active','locked','expired')
+  created_at : datetime
+}
+
+entity "transactions" as Transaction {
+  * id : int <<PK>>
+  --
+  reader_id : int <<FK>>
+  book_id : int <<FK>>
+  borrow_date : date
+  due_date : date
+  return_date : date
+  status : enum('BORROWED','RETURNED','OVERDUE')
+  extension_count : int
+  notes : text
+}
+
+entity "return_slips" as ReturnSlip {
+  * id : int <<PK>>
+  --
+  transaction_id : int <<FK>>
+  return_date : datetime
+  condition : enum('good','damaged','lost')
+  notes : text
+  received_by : int <<FK>>
+}
+
+entity "book_imports" as BookImport {
+  * id : int <<PK>>
+  --
+  import_code : varchar(20)
+  import_date : date
+  supplier : varchar(100)
+  total_amount : decimal(12,2)
+  notes : text
+  created_by : int <<FK>>
+  created_at : datetime
+}
+
+entity "book_import_details" as BookImportDetail {
+  * id : int <<PK>>
+  --
+  import_id : int <<FK>>
+  book_id : int <<FK>>
+  quantity : int
+  unit_price : decimal(12,2)
+}
+
+entity "fines" as Fine {
+  * id : int <<PK>>
+  --
+  transaction_id : int <<FK>>
+  amount : decimal(10,2)
+  reason : varchar(255)
+  paid : boolean
+  paid_at : datetime
+}
+
+entity "notifications" as Notification {
+  * id : int <<PK>>
+  --
+  reader_id : int <<FK>>
+  title : varchar(200)
+  message : text
+  type : varchar(50)
+  is_read : boolean
+  created_at : datetime
+}
+
+entity "reservations" as Reservation {
+  * id : int <<PK>>
+  --
+  reader_id : int <<FK>>
+  book_id : int <<FK>>
+  expires_at : datetime
+  status : varchar(20)
+}
+
+entity "chat_messages" as ChatMessage {
+  * id : int <<PK>>
+  --
+  reader_id : int <<FK>>
+  message : text
+  response : text
+  intent : varchar(50)
+  created_at : datetime
+}
+
+entity "admin_agent_logs" as AgentLog {
+  * id : int <<PK>>
+  --
+  action : varchar(100)
+  description : text
+  result : varchar(50)
+  executed_at : datetime
+}
+
+' Relationships
+Category ||--o{ Book : "has"
+Category ||--o| Category : "parent"
+Book ||--o{ Transaction : "borrowed in"
+Reader ||--o{ Transaction : "borrows"
+Transaction ||--o| ReturnSlip : "has"
+Transaction ||--o{ Fine : "has"
+User ||--o{ ReturnSlip : "receives"
+User ||--o{ BookImport : "creates"
+BookImport ||--o{ BookImportDetail : "contains"
+Book ||--o{ BookImportDetail : "imported in"
+Reader ||--o{ Notification : "receives"
+Reader ||--o{ Reservation : "makes"
+Book ||--o{ Reservation : "reserved"
+Reader ||--o{ ChatMessage : "sends"
+
+@enduml
+
+========================================================================
+9. SƠ ĐỒ TRIỂN KHAI (Deployment Diagram)
+========================================================================
+@startuml
+title Sơ đồ Triển khai Hệ thống
+
+node "Client Browser" as Client {
+  component "React App" as ReactApp
+  component "Chat Widget" as ChatWidget
+}
+
+node "Web Server" as WebServer {
+  component "Express.js API" as API
+  component "Chat Bot Service" as ChatService
+  component "Admin Agent Service" as AgentService
+  
+  component "Controllers" as Controllers
+  component "Models (Sequelize)" as Models
+}
+
+node "AI Services" as AIServer {
+  component "Dialogflow / OpenAI" as AI
+}
+
+node "Database Server" as DBServer {
+  database "MySQL Database" as MySQL
+}
+
+node "Scheduler" as Scheduler {
+  component "Node-Cron" as Cron
+}
+
+Client -- WebServer : HTTPS (REST API)
+ChatWidget -- ChatService : WebSocket
+ChatService -- AI : HTTPS
+AgentService -- MySQL : SQL
+Cron -- AgentService : Trigger
+API -- Controllers
+Controllers -- Models
+Models -- MySQL : SQL (Sequelize ORM)
+
+@enduml
