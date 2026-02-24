@@ -763,12 +763,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message, stack: err.stack });
 });
 
-// Sync Database and Start Server
-if (require.main === module) {
-  sequelize.sync({ alter: true }).then(async () => {
-    console.log("Database synced");
+// Setup/Verification Route to safely test DB connection
+app.get("/api/init", async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    await sequelize.sync({ alter: true });
 
-    // Create default admin user
+    // Create default admin user if not exists
     const adminExists = await User.findOne({ where: { username: "admin" } });
     if (!adminExists) {
       await User.create({
@@ -777,13 +778,61 @@ if (require.main === module) {
         fullName: "Administrator",
         role: "admin",
       });
-      console.log("Default admin user created");
     }
-
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+    res.json({
+      status: "ok",
+      message: "Database connected and synced successfully.",
     });
-  });
+  } catch (err) {
+    console.error("DB Init Error:", err);
+    res
+      .status(500)
+      .json({ status: "error", error: err.message, stack: err.stack });
+  }
+});
+
+// Sync Database and Start Server
+if (require.main === module && !process.env.VERCEL) {
+  sequelize
+    .sync({ alter: true })
+    .then(async () => {
+      console.log("Database synced");
+
+      // Create default admin user
+      const adminExists = await User.findOne({ where: { username: "admin" } });
+      if (!adminExists) {
+        await User.create({
+          username: "admin",
+          passwordHash: "admin123",
+          fullName: "Administrator",
+          role: "admin",
+        });
+        console.log("Default admin user created");
+      }
+
+      app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+      });
+    })
+    .catch((err) => {
+      console.error("Failed to start server:", err);
+    });
+} else if (process.env.VERCEL) {
+  // Proactively sync database when Vercel function wakes up, with catch to prevent crash
+  sequelize
+    .sync({ alter: true })
+    .then(async () => {
+      const adminExists = await User.findOne({ where: { username: "admin" } });
+      if (!adminExists) {
+        await User.create({
+          username: "admin",
+          passwordHash: "admin123",
+          fullName: "Administrator",
+          role: "admin",
+        });
+      }
+    })
+    .catch((e) => console.error("Vercel background DB sync failed:", e));
 }
 
 // Export for Vercel serverless function
